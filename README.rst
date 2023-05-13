@@ -2,6 +2,8 @@
 djgpt
 ===============================
 
+.. image:: https://raw.githubusercontent.com/MattOates/djgpt/main/screenshot.png
+
 Introduction
 ------------
 DJGPT lets you play some beats on Spotify recommended from the GPT4 LLM masquerading as a DJ.
