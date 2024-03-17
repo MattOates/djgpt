@@ -62,7 +62,7 @@ class GPTPromptSystem(PromptSystem):
     max_tokens = 1000
     temperature = 1.2
 
-    @retry(exception_class=openai.error.OpenAIError)
+    @retry(exception_class=openai.OpenAIError)
     def ask(self, user_prompt: str) -> str:
         """
         Asks a question to the GPT-4 model.
@@ -87,7 +87,7 @@ class GPTPromptSystem(PromptSystem):
                 )
                 gpt_text = response["choices"][0]["message"]["content"]
                 CONSOLE.log("[bold red]GPT Done!")
-            except openai.error.OpenAIError as e:
+            except openai.OpenAIError as e:
                 CONSOLE.log(f"[bold red]ERROR: {e}")
                 raise
         debug(f"Raw GPT Response: {response}")
