@@ -1,8 +1,8 @@
 """
 Tests for the utils module
 """
-import pytest
-from unittest.mock import patch, MagicMock
+
+from unittest.mock import patch
 
 from djgpt.utils import debug, retry
 
@@ -10,22 +10,22 @@ from djgpt.utils import debug, retry
 class TestDebug:
     """Test debug function"""
 
-    @patch('djgpt.utils.CONSOLE')
-    @patch('djgpt.utils.LOGLEVEL', 'DEBUG')
+    @patch("djgpt.utils.CONSOLE")
+    @patch("djgpt.utils.LOGLEVEL", "DEBUG")
     def test_debug_logging_enabled(self, mock_console):
         """Test debug function when logging is enabled"""
         debug("Test message")
         mock_console.log.assert_called_once_with("Test message")
 
-    @patch('djgpt.utils.CONSOLE')
-    @patch('djgpt.utils.LOGLEVEL', 'TRACE')
+    @patch("djgpt.utils.CONSOLE")
+    @patch("djgpt.utils.LOGLEVEL", "TRACE")
     def test_debug_trace_enabled(self, mock_console):
         """Test debug function when trace is enabled"""
         debug("Test message")
         mock_console.log.assert_called_once_with("Test message")
 
-    @patch('djgpt.utils.CONSOLE')
-    @patch('djgpt.utils.LOGLEVEL', 'INFO')
+    @patch("djgpt.utils.CONSOLE")
+    @patch("djgpt.utils.LOGLEVEL", "INFO")
     def test_debug_logging_disabled(self, mock_console):
         """Test debug function when logging is disabled"""
         debug("Test message")
@@ -37,6 +37,7 @@ class TestRetry:
 
     def test_retry_success_first_attempt(self):
         """Test retry when function succeeds on first attempt"""
+
         @retry
         def test_func():
             return "success"
@@ -87,7 +88,7 @@ class TestRetry:
         assert result == "success"
         assert attempts[0] == 2  # None on first attempt, success on second
 
-    @patch('time.sleep')
+    @patch("time.sleep")
     def test_retry_with_sleep(self, mock_sleep):
         """Test retry with sleeptime"""
         attempts = [0]
@@ -103,7 +104,7 @@ class TestRetry:
         assert result == "success"
         mock_sleep.assert_called_once_with(1)
 
-    @patch('time.sleep')
+    @patch("time.sleep")
     def test_retry_with_cooloff(self, mock_sleep):
         """Test retry with cooloff"""
         attempts = [0]

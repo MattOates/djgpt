@@ -1,14 +1,14 @@
 import time
 from functools import wraps
 from os import getenv
-from typing import Optional, Callable, Type
+from typing import Callable, Optional, Type
 
 from dotenv import find_dotenv, load_dotenv
 
 load_dotenv(find_dotenv(usecwd=True))
 
-from rich.console import Console
-from rich.prompt import Confirm
+from rich.console import Console  # noqa: E402
+from rich.prompt import Confirm  # noqa: E402
 
 CONSOLE = Console()
 LOGLEVEL = getenv("LOGLEVEL", "INFO")
@@ -27,13 +27,13 @@ def retry(
     sleeptime: int = 0,
     none_is_fail: bool = True,
     prompt: Optional[str] = None,
-    cooloff: bool = False
+    cooloff: bool = False,
 ) -> Callable:
     """Retry calling a wrapped function.
 
     Helper decorator to deal with the various troubles with integrating against so many external pieces of tech.
     GPT especially might just halucinate invalid JSON, though the prompt so far does a good job.
-    
+
     Parameters
     ----------
     _func : Callable, optional
@@ -51,6 +51,7 @@ def retry(
     cooloff : bool
         Use linear backoff per tries (try * sleeptime)
     """
+
     def decorator_retry(func):
         @wraps(func)
         def wrapper_retry(*args, **kwargs):
@@ -76,6 +77,7 @@ def retry(
                         if wait_time > 0:
                             time.sleep(wait_time)
             return None
+
         return wrapper_retry
 
     if _func is None:

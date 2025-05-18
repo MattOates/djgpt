@@ -2,7 +2,7 @@
 #
 # This Makefile provides shortcuts for common operations in the DJGPT project.
 
-.PHONY: setup run clean ui-dev ui-build ui-install lint test help setup-audio setup-openai setup-cross-platform
+.PHONY: setup run clean ui-dev ui-build ui-install lint format test help setup-audio setup-openai setup-cross-platform
 
 # Default target
 help:
@@ -18,7 +18,8 @@ help:
 	@echo "  make ui-install  - Install UI dependencies"
 	@echo "  make ui-dev      - Run the UI development server"
 	@echo "  make ui-build    - Build the UI for production"
-	@echo "  make lint        - Run linters on the code"
+	@echo "  make lint        - Run linters (ruff) on the code"
+	@echo "  make format      - Format code using ruff"
 	@echo "  make test        - Run tests"
 
 # Setup the environment
@@ -84,8 +85,16 @@ ui-build:
 
 # Code quality
 lint:
-	@echo "Running linters..."
-	pixi run -c "pylint --recursive=y ."
+	@echo "Running linters with ruff..."
+	pixi global install ruff
+	pixi run ruff check .
+
+# Format code
+format:
+	@echo "Formatting code with ruff..."
+	pixi global install ruff
+	pixi run ruff check --fix --unsafe-fixes .
+	pixi run ruff format .
 
 # Tests
 test:

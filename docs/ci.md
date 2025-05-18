@@ -13,7 +13,9 @@ The workflow is defined in `.github/workflows/ci.yml` and:
 - Runs on both Ubuntu and macOS environments
 - Tests with Python 3.11
 - Uses pixi for dependency management
-- Runs linters and tests
+- Formats code with ruff
+- Runs linters with ruff
+- Runs tests
 
 ### Environment Variables
 
@@ -54,6 +56,11 @@ To set up a local development environment that matches the CI environment:
 5. Run linters:
    ```bash
    make lint
+   ```
+
+6. Format code:
+   ```bash
+   make format
    ```
 
 ## Troubleshooting CI Issues

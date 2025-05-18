@@ -36,6 +36,7 @@ strenum = ">=0.4.15,<0.5"
 portaudio = ">=19.6.0,<19.7"
 pytest = ">=7.0.0,<8.0.0"
 pytest-cov = ">=4.0.0,<5.0.0"
+ruff = ">=0.2.0"
 
 [tool.pixi.pypi-dependencies]
 openai = "==0.28"
@@ -45,3 +46,38 @@ pyttsx3 = "*"
 pocketsphinx = "*"
 rich = ">=13.0.0"
 djgpt = { path = ".", editable = true }
+
+[tool.ruff]
+line-length = 100
+indent-width = 4
+
+
+[tool.ruff.lint]
+# Enable flake8-bugbear (`B`) rules
+select = ["E", "F", "B", "I"]
+ignore = ["E501"]  # Line length
+
+# Allow autofix for all enabled rules (when `--fix`) is provided
+fixable = ["ALL"]
+unfixable = []
+
+# Exclude a variety of commonly ignored directories
+exclude = [
+    ".git",
+    ".mypy_cache",
+    ".ruff_cache",
+    ".venv",
+    "__pypackages__",
+    "_build",
+    "build",
+    "dist",
+    "venv",
+]
+
+[tool.ruff.format]
+# Use double quotes for strings
+quote-style = "double"
+# Indent with spaces
+indent-style = "space"
+# Skip magic trailing commas
+skip-magic-trailing-comma = false

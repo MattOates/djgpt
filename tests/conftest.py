@@ -1,6 +1,7 @@
 """
 pytest configuration file
 """
+
 import pytest
 
 

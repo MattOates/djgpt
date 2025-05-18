@@ -2,12 +2,12 @@
 Cross-platform speech module for DJGPT that works on all operating systems.
 This module provides speech synthesis and recognition with fallbacks for different platforms.
 """
-import time
-import platform
-from typing import Optional
-import sys
 
-from djgpt.utils import CONSOLE, retry
+import platform
+import time
+from typing import Optional
+
+from djgpt.utils import CONSOLE
 
 # Import platform-specific text-to-speech modules
 SYSTEM = platform.system().lower()
@@ -19,6 +19,7 @@ TTS = None
 if SYSTEM == "darwin":  # macOS
     try:
         from AppKit import NSSpeechSynthesizer
+
         TTS = NSSpeechSynthesizer.alloc().init()
         TTS_TYPE = "macos"
     except ImportError:
@@ -31,12 +32,16 @@ else:
 if TTS_TYPE == "pyttsx3":
     try:
         import pyttsx3
+
         TTS = pyttsx3.init()
         # Set a reasonable speaking rate
-        TTS.setProperty('rate', 180)
+        TTS.setProperty("rate", 180)
     except Exception as e:
         CONSOLE.log(f"[bold red]Error initializing pyttsx3: {str(e)}[/]")
-        CONSOLE.log("[bold yellow]Text-to-speech functionality will be limited to text display only.[/]")
+        CONSOLE.log(
+            "[bold yellow]Text-to-speech functionality will be limited to text display only.[/]"
+        )
+
 
 def _wait_for_speech_to_finish():
     """Wait for text-to-speech to finish"""
@@ -47,22 +52,23 @@ def _wait_for_speech_to_finish():
         # pyttsx3's runAndWait() is blocking already, so nothing to do here
         pass
 
+
 def say(text: str, wait: bool = False):
     """
     Cross-platform text-to-speech function.
     Always prints the text and attempts to speak it if possible.
     """
     CONSOLE.print(text)
-    
+
     if TTS is None:
         # No TTS engine available, just return after printing
         return
-    
+
     if TTS_TYPE == "macos":
         # Don't interrupt previous startSpeaking as it cancels to the most recent
         _wait_for_speech_to_finish()
         TTS.startSpeakingString_(text)
-        
+
         # Be a blocking call instead of OS level asynchronous
         if wait:
             _wait_for_speech_to_finish()
@@ -71,14 +77,14 @@ def say(text: str, wait: bool = False):
         # runAndWait is blocking by nature
         TTS.runAndWait()
 
+
 def listen() -> Optional[str]:
     """
     Get user input. Tries to use speech recognition if available,
     but falls back to keyboard input if speech recognition fails.
     """
     # First try to use speech recognition if it's available
-    speech_text = None
-    
+
     # Always fall back to keyboard input for now
     CONSOLE.print("[bold yellow]Microphone input disabled. Please type your request instead:[/]")
     try:
@@ -91,6 +97,7 @@ def listen() -> Optional[str]:
     except Exception as e:
         CONSOLE.log(f"[bold red]Error getting keyboard input: {str(e)}")
         return None
+
 
 # If you want to extend this in the future to use speech recognition:
 """
