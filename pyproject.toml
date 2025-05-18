@@ -15,7 +15,7 @@ requires = ["hatchling"]
 
 [tool.pixi.workspace]
 channels = ["apple", "pytorch", "conda-forge"]
-platforms = ["osx-arm64"]
+platforms = ["osx-arm64", "linux-64"]
 
 [tool.pixi.tasks]
 start = "python -m djgpt"
@@ -30,13 +30,15 @@ spotipy = ">=2.23.0,<2.24"
 pytorch = ">=2.1.0,<2.2"
 python-dotenv = ">=1.0.1,<1.1"
 speechrecognition = "==3.10.0"
-pyobjc-core = ">=10.2,<11"
-pyobjc-framework-coreservices = ">=9.1,<10"
 strenum = ">=0.4.15,<0.5"
 portaudio = ">=19.6.0,<19.7"
 pytest = ">=7.0.0,<8.0.0"
 pytest-cov = ">=4.0.0,<5.0.0"
 ruff = ">=0.2.0"
+
+[tool.pixi.target.osx-arm64.dependencies]
+pyobjc-core = ">=10.2,<11"
+pyobjc-framework-coreservices = ">=9.1,<10"
 
 [tool.pixi.pypi-dependencies]
 openai = "==0.28"
