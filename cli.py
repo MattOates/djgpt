@@ -15,7 +15,8 @@ import spotify
 from prompt import IntGPTPromptSystem, SelfTestJSONGPTPromptSystem
 from spotify import Track, wait_for_spotify, play_on_spotify
 
-from stts import listen, say
+# Use the cross-platform speech module that works on all operating systems
+from cross_platform_speech import listen, say
 
 load_dotenv(find_dotenv(usecwd=True))
 
@@ -67,6 +68,12 @@ def djgpt(
         try:
             say("What kind of thing do you want to listen to?")
             speech_text = listen()
+            
+            # Check if speech_text is None (microphone/recognition failed)
+            if speech_text is None:
+                say("Sorry, I couldn't hear you. Please try again.", wait=True)
+                continue
+                
             if "stop" in speech_text.lower():
                 say("Goodbye!", wait=True)
                 exit()

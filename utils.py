@@ -4,6 +4,7 @@ from os import getenv
 from typing import Optional, Callable, Type
 
 from dotenv import find_dotenv, load_dotenv
+
 load_dotenv(find_dotenv(usecwd=True))
 
 from rich.console import Console
@@ -25,7 +26,8 @@ def retry(
     exception_class: Type[BaseException] = Exception,
     sleeptime: int = 0,
     none_is_fail: bool = True,
-    prompt: Optional[str] = None
+    prompt: Optional[str] = None,
+    cooloff: bool = False
 ) -> Callable:
     """Retry calling a wrapped function.
 
@@ -47,6 +49,8 @@ def retry(
         Defaults to True so we deal with None result as a failure to retry
     prompt : str, optional
         A y/n question to ask the user waiting on their input before retrying incase they have to do something
+    cooloff : bool
+        Defaults to False so we dont try to cool off the model temperature on retru
 
     Returns
     -------
@@ -67,6 +71,9 @@ def retry(
                         continue
                     return returned
                 except exception_class as e:
+                    if cooloff:
+                        if e.prompt is not None:
+                            e.prompt.temperature *= 0.75
                     if i == num_attempts - 1:
                         raise
                     else:

@@ -3,7 +3,6 @@
 Module to deal with all the speech-to-text and text-to-speech functionality.
 """
 import time
-from functools import cache
 from typing import Optional
 
 from speech_recognition import Recognizer, Microphone, UnknownValueError, RequestError
@@ -14,21 +13,6 @@ from AppKit import NSSpeechSynthesizer
 from utils import CONSOLE, retry
 
 TTS = NSSpeechSynthesizer.alloc().init()
-
-
-@cache
-def get_sr():
-    """Get the cached recognizer instance.
-
-    Only need a single recognizer and audio device instance, also initialise for ambient noise.
-    """
-    recognizer = Recognizer()
-    mic = Microphone()
-
-    with mic as source:
-        recognizer.adjust_for_ambient_noise(source)
-
-    return recognizer, mic
 
 
 def _wait_for_siri_to_shutup():
@@ -59,24 +43,49 @@ def listen() -> Optional[str]:
     """
     # Wait for Siri's voice otherwise we listen to ourselves!
     _wait_for_siri_to_shutup()
-    with CONSOLE.status("[bold green]Listening...") as status:
-        recognizer, mic = get_sr()
+    
+    try:
+        with CONSOLE.status("[bold green]Listening...") as status:
+            # Get fresh instances each time
+            recognizer = Recognizer()
+            
+            try:
+                # Try to initialize the microphone
+                mic = Microphone()
+            except Exception as e:
+                CONSOLE.log(f"[bold red]Microphone error: {str(e)}")
+                CONSOLE.log("[bold yellow]Try running 'make setup-audio' to fix audio dependencies")
+                return None
+                
+            try:
+                with mic as source:
+                    # Adjust for ambient noise here, within the context manager
+                    try:
+                        recognizer.adjust_for_ambient_noise(source)
+                    except Exception as e:
+                        CONSOLE.log(f"[bold red]Ambient noise adjustment error: {str(e)}")
+                    
+                    # Listen for audio
+                    audio = recognizer.listen(source, phrase_time_limit=5)
+            except Exception as e:
+                CONSOLE.log(f"[bold red]Listening error: {str(e)}")
+                return None
 
-        with mic as source:
-            audio = recognizer.listen(source, phrase_time_limit=5)
-
-        status.update("[bold yellow]Recognizing...")
-        # received audio data, now we'll recognize it using Google Speech Recognition
-        try:
-            speech_text = recognizer.recognize_whisper(audio, language="english", model="base.en")
-        except UnknownValueError:
-            CONSOLE.log("[bold red]Whisper could not understand audio")
-            speech_text = None
-        except RequestError as e:
-            CONSOLE.log("[bold red]Could not request results from Whisper")
-            speech_text = None
-        CONSOLE.log(f"[bold red]Heard: {speech_text}")
-    return speech_text
+            status.update("[bold yellow]Recognizing...")
+            # Recognize the audio
+            try:
+                speech_text = recognizer.recognize_whisper(audio, language="english", model="base.en")
+                CONSOLE.log(f"[bold green]Heard: {speech_text}")
+                return speech_text
+            except UnknownValueError:
+                CONSOLE.log("[bold red]Whisper could not understand audio")
+                return None
+            except RequestError:
+                CONSOLE.log("[bold red]Could not request results from Whisper")
+                return None
+    except Exception as e:
+        CONSOLE.log(f"[bold red]Unexpected error in listen(): {str(e)}")
+        return None
 
 
 def listen_command(recognizer, audio):
@@ -95,7 +104,7 @@ def listen_command(recognizer, audio):
     except UnknownValueError:
         CONSOLE.log("[bold red]Whisper could not understand audio")
         return
-    except RequestError as e:
+    except RequestError:
         CONSOLE.log("[bold red]Could not request results from Whisper")
         return
     CONSOLE.log(f"[bold red]Heard: {speech_text}")
