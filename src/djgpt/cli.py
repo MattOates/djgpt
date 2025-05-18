@@ -3,30 +3,27 @@
 
 Handle setting up a CLI and running the interactive DJ session
 """
+import time
 from typing import List
 from typing_extensions import Annotated
 from os import getenv
 from sys import exit
-import time
 
+import openai
+import typer
+from typer import Option
 from dotenv import find_dotenv, load_dotenv
 
-import spotify
-from prompt import IntGPTPromptSystem, SelfTestJSONGPTPromptSystem
-from spotify import Track, wait_for_spotify, play_on_spotify
-
+from djgpt import spotify
+from djgpt.prompt import IntGPTPromptSystem, SelfTestJSONGPTPromptSystem
+from djgpt.spotify import Track, wait_for_spotify, play_on_spotify
 # Use the cross-platform speech module that works on all operating systems
-from cross_platform_speech import listen, say
+from djgpt.speech import listen, say
+from djgpt.utils import CONSOLE
 
 load_dotenv(find_dotenv(usecwd=True))
 
-import typer
-from typer import Option
 app = typer.Typer()
-
-import openai
-
-from utils import CONSOLE
 
 
 class DJGPTPromptSystem(SelfTestJSONGPTPromptSystem):
@@ -83,7 +80,7 @@ def djgpt(
             if len(recommended_tracks) == 0:
                 continue
 
-            say(f"GPT recommended the following tracks found in Spotify:")
+            say("GPT recommended the following tracks found in Spotify:")
             for idx, track in enumerate(recommended_tracks):
                 if track.spotify is None:
                     # If we can't find something in Spotify it's probably GPT4 halucinating its tits off so just ignore
@@ -116,5 +113,9 @@ def djgpt(
             raise SystemExit
 
 
-if __name__ == '__main__':
+def main():
     app()
+
+
+if __name__ == '__main__':
+    main()

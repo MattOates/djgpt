@@ -62,6 +62,11 @@ clean:
 	rm -rf *.log
 	rm -rf djgpt-ui/build
 	rm -rf djgpt-ui/node_modules/.cache
+	rm -rf .pixi
+	rm -rf .cache
+	rm -rf .pytest_cache
+	rm -rf .coverage
+	rm -rf .mypy_cache
 	@echo "Cleanup complete."
 
 # UI development commands
@@ -85,4 +90,4 @@ lint:
 # Tests
 test:
 	@echo "Running tests..."
-	pixi run -c "pytest"
+	pixi run test

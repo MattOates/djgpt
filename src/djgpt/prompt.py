@@ -11,7 +11,7 @@ from typing import NamedTuple, List, Dict, Union, Optional, Any
 
 import openai
 
-from utils import retry, CONSOLE, debug
+from djgpt.utils import retry, CONSOLE, debug
 
 
 class TestCaseType(LowercaseStrEnum):

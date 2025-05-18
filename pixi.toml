@@ -1,13 +1,16 @@
 [project]
 name = "djgpt"
 version = "0.1.0"
-description = "Add a short description here"
+description = "AI DJ assistant that integrates with Spotify"
 authors = ["Matt Oates <mattoates+support@gmail.com>"]
 channels = ["apple", "pytorch-nightly", "conda-forge"]
 platforms = ["osx-arm64"]
 
 [tasks]
-start = "python cli.py"
+start = "python -m djgpt"
+check-import = "python -c 'import djgpt; print(f\"Found djgpt at: {djgpt.__file__}\")'"
+test = "pytest tests/"
+coverage = "pytest --cov=djgpt tests/"
 
 [dependencies]
 python = ">=3.11.8,<3.13"
@@ -20,6 +23,8 @@ pyobjc-core = ">=10.2,<11"
 pyobjc-framework-coreservices = ">=9.1,<10"
 strenum = ">=0.4.15,<0.5"
 portaudio = ">=19.6.0,<19.7"
+pytest = ">=7.0.0,<8.0.0"
+pytest-cov = ">=4.0.0,<5.0.0"
 
 [pypi-dependencies]
 openai = "==0.28"
@@ -27,3 +32,5 @@ openai-whisper = "*"
 pyaudio = "*"
 pyttsx3 = "*"
 pocketsphinx = "*"
+rich = ">=13.0.0"
+djgpt = { path = ".", editable = true }

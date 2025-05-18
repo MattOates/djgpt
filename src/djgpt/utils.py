@@ -33,8 +33,7 @@ def retry(
 
     Helper decorator to deal with the various troubles with integrating against so many external pieces of tech.
     GPT especially might just halucinate invalid JSON, though the prompt so far does a good job.
-    ...
-
+    
     Parameters
     ----------
     _func : Callable, optional
@@ -50,37 +49,32 @@ def retry(
     prompt : str, optional
         A y/n question to ask the user waiting on their input before retrying incase they have to do something
     cooloff : bool
-        Defaults to False so we dont try to cool off the model temperature on retru
-
-    Returns
-    -------
-    object
-        a callable wrapped function, or what it returned depending on if parameters were passed to the decorator
+        Use linear backoff per tries (try * sleeptime)
     """
-    def decorator_retry(func: Callable):
+    def decorator_retry(func):
         @wraps(func)
         def wrapper_retry(*args, **kwargs):
-            for i in range(num_attempts):
+            attempt = 1
+            while attempt <= num_attempts:
+                debug(f"Attempt {attempt} for {func.__name__}")
                 try:
-                    returned = func(*args, **kwargs)
-                    if none_is_fail and returned is None:
-                        CONSOLE.log(f"[bold yellow]Failed with None returned, trying again...")
-                        time.sleep(sleeptime)
-                        if prompt is not None:
-                            Confirm.ask(prompt)
-                        continue
-                    return returned
+                    result = func(*args, **kwargs)
+                    if none_is_fail and result is None:
+                        raise ValueError("Function returned None.")
+                    return result
                 except exception_class as e:
-                    if cooloff:
-                        if e.prompt is not None:
-                            e.prompt.temperature *= 0.75
-                    if i == num_attempts - 1:
-                        raise
-                    else:
-                        CONSOLE.log(f"[bold yellow]Failed with error {e}, trying again...")
-                        time.sleep(sleeptime)
-                        if prompt is not None:
-                            Confirm.ask(prompt)
+                    debug(f"Exception occurred: {e}, retrying...")
+                    if prompt:
+                        if not Confirm.ask(prompt, default=False):
+                            debug("User answered no, breaking out of retry")
+                            break
+                    attempt += 1
+                    if attempt <= num_attempts:
+                        wait_time = sleeptime
+                        if cooloff:
+                            wait_time = sleeptime * attempt
+                        if wait_time > 0:
+                            time.sleep(wait_time)
             return None
         return wrapper_retry
 

@@ -10,7 +10,7 @@ from typing import NamedTuple, Dict, Optional, List
 import spotipy
 from spotipy import SpotifyException
 
-from utils import debug, retry, CONSOLE
+from djgpt.utils import debug, retry, CONSOLE
 
 # Spotify globals
 S_DEVICE_ID = S_CLIENT_ID = S_SECRET_ID = None

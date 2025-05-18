@@ -7,7 +7,7 @@ import platform
 from typing import Optional
 import sys
 
-from utils import CONSOLE, retry
+from djgpt.utils import CONSOLE, retry
 
 # Import platform-specific text-to-speech modules
 SYSTEM = platform.system().lower()
