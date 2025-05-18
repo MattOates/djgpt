@@ -1,0 +1,85 @@
+# filepath: /Users/matt/git/djgpt/pyproject.toml
+[project]
+name = "djgpt"
+requires-python = ">= 3.11"
+version = "0.1.0"
+description = "AI DJ assistant that integrates with Spotify"
+authors = [
+    {name = "Matt Oates", email = "mattoates+support@gmail.com"}
+]
+dependencies = []
+
+[build-system]
+build-backend = "hatchling.build"
+requires = ["hatchling"]
+
+[tool.pixi.workspace]
+channels = ["apple", "pytorch", "conda-forge"]
+platforms = ["osx-arm64", "linux-64"]
+
+[tool.pixi.tasks]
+start = "python -m djgpt"
+check-import = "python -c 'import djgpt; print(f\"Found djgpt at: {djgpt.__file__}\")'"
+test = "pytest tests/"
+coverage = "pytest --cov=djgpt tests/"
+
+[tool.pixi.dependencies]
+python = ">=3.11.8,<3.13"
+typer = ">=0.9.0,<0.10"
+spotipy = ">=2.23.0,<2.24"
+pytorch = ">=2.1.0,<2.2"
+python-dotenv = ">=1.0.1,<1.1"
+speechrecognition = "==3.10.0"
+strenum = ">=0.4.15,<0.5"
+portaudio = ">=19.6.0,<19.7"
+pytest = ">=7.0.0,<8.0.0"
+pytest-cov = ">=4.0.0,<5.0.0"
+ruff = ">=0.2.0"
+
+[tool.pixi.target.osx-arm64.dependencies]
+pyobjc-core = ">=10.2,<11"
+pyobjc-framework-coreservices = ">=9.1,<10"
+
+[tool.pixi.pypi-dependencies]
+openai = "==0.28"
+openai-whisper = "*"
+pyaudio = "*"
+pyttsx3 = "*"
+pocketsphinx = "*"
+rich = ">=13.0.0"
+djgpt = { path = ".", editable = true }
+
+[tool.ruff]
+line-length = 100
+indent-width = 4
+
+
+[tool.ruff.lint]
+# Enable flake8-bugbear (`B`) rules
+select = ["E", "F", "B", "I"]
+ignore = ["E501"]  # Line length
+
+# Allow autofix for all enabled rules (when `--fix`) is provided
+fixable = ["ALL"]
+unfixable = []
+
+# Exclude a variety of commonly ignored directories
+exclude = [
+    ".git",
+    ".mypy_cache",
+    ".ruff_cache",
+    ".venv",
+    "__pypackages__",
+    "_build",
+    "build",
+    "dist",
+    "venv",
+]
+
+[tool.ruff.format]
+# Use double quotes for strings
+quote-style = "double"
+# Indent with spaces
+indent-style = "space"
+# Skip magic trailing commas
+skip-magic-trailing-comma = false

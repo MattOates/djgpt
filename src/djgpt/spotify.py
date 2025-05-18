@@ -2,15 +2,16 @@
 
 Module to deal with all the Spotify API interactions and functionality
 """
+
 import time
 from dataclasses import dataclass
 from functools import cache
-from typing import NamedTuple, Dict, Optional, List
+from typing import Dict, List, NamedTuple, Optional
 
 import spotipy
 from spotipy import SpotifyException
 
-from utils import debug, retry, CONSOLE
+from djgpt.utils import CONSOLE, debug, retry
 
 # Spotify globals
 S_DEVICE_ID = S_CLIENT_ID = S_SECRET_ID = None
@@ -21,6 +22,7 @@ class Spotify(NamedTuple):
 
     Tuple of what we care about the URI/URLs and stash the rest just incase
     """
+
     url: str
     uri: str
     stash: Dict
@@ -32,6 +34,7 @@ class Track:
 
     Simple data class to deal with tracks from GPT and spotify queries.
     """
+
     artist: str
     trackname: str
     genre: Optional[str] = None
@@ -70,7 +73,7 @@ def wait_for_spotify():
     spotify = get_spotify()
     track_name = artist_name = None
     with CONSOLE.status("[bold green]Waiting for Spotify...") as status:
-        while(True):
+        while True:
             playback = spotify.current_playback()
             if playback is None:
                 break
@@ -80,7 +83,9 @@ def wait_for_spotify():
                 artist_name = playback["item"]["artists"][0]["name"]
             else:
                 break
-            status.update(f"[bold green]Waiting for Spotify to finish, listening to {track_name} by {artist_name}")
+            status.update(
+                f"[bold green]Waiting for Spotify to finish, listening to {track_name} by {artist_name}"
+            )
             time.sleep(30)
         CONSOLE.log("[bold red]Ready to DJ!")
     return Track(trackname=track_name, artist=artist_name)
@@ -90,17 +95,14 @@ def search_spotify(artist: str, trackname: str) -> Optional[Spotify]:
     """Search Spotify using an artist and track name, get back an exteranl URL"""
     try:
         search_results = get_spotify().search(
-            f"artist:{artist} track:{trackname}",
-            limit=1,
-            offset=0,
-            type='track'
+            f"artist:{artist} track:{trackname}", limit=1, offset=0, type="track"
         )
         if not search_results:
             return None
 
-        track = search_results['tracks']['items'][0]
-        url = track['external_urls']['spotify']
-        uri = track['uri']
+        track = search_results["tracks"]["items"][0]
+        url = track["external_urls"]["spotify"]
+        uri = track["uri"]
 
         return Spotify(url, uri, search_results)
 
@@ -112,7 +114,7 @@ def search_spotify(artist: str, trackname: str) -> Optional[Spotify]:
 @retry(
     exception_class=SpotifyException,
     prompt="Try again with Spotify? (If the error is 'No active device found' just press play/pause in Spotify)",
-    none_is_fail=False
+    none_is_fail=False,
 )
 def play_on_spotify(tracks: List[Track]):
     get_spotify().start_playback(uris=[t.spotify.uri for t in tracks if t.spotify])

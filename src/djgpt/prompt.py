@@ -2,14 +2,34 @@
 
 Module to deal with prompt management and interacting with OpenAI's API
 """
-import json
+
 import abc
-from json import JSONDecodeError
+import json
+from enum import auto
 from string import Formatter
+from typing import Any, Dict, List, NamedTuple, Optional, Union
 
 import openai
+from strenum import LowercaseStrEnum
 
-from utils import retry, CONSOLE, debug
+from djgpt.utils import CONSOLE, debug, retry
+
+
+class TestCaseType(LowercaseStrEnum):
+    HAPPY = auto()
+    SAD = auto()
+    HALLUCINATING = auto()
+
+
+class PromptTestCase(NamedTuple):
+    """Store spotify API data.
+
+    Tuple of what we care about the URI/URLs and stash the rest just incase
+    """
+
+    prompt: str
+    output: Union[List, Dict]
+    case: TestCaseType
 
 
 class PromptSystemMeta(abc.ABCMeta):
@@ -17,10 +37,13 @@ class PromptSystemMeta(abc.ABCMeta):
     It handles the creation of new PromptSystem classes and ensures
     that they are correctly initialized based on their prompt strings.
     """
+
     def __new__(cls, name, bases, dct):
-        prompt_parts = [base.prompt_part for base in reversed(bases) if hasattr(base, 'prompt_part')]
-        prompt_parts.append(dct.get('prompt_part', ''))
-        prompt = ''.join(prompt_parts)
+        prompt_parts = [
+            base.prompt_part for base in reversed(bases) if hasattr(base, "prompt_part")
+        ]
+        prompt_parts.append(dct.get("prompt_part", ""))
+        prompt = "".join(prompt_parts)
 
         formatter = Formatter()
         field_names = [field_name for _, field_name, _, _ in formatter.parse(prompt) if field_name]
@@ -29,8 +52,8 @@ class PromptSystemMeta(abc.ABCMeta):
             for field_name in field_names:
                 setattr(self, field_name, kwargs.get(field_name))
 
-        dct['__init__'] = init
-        dct['prompt'] = prompt
+        dct["__init__"] = init
+        dct["prompt"] = prompt
         return super().__new__(cls, name, bases, dct)
 
 
@@ -39,6 +62,7 @@ class PromptSystem(metaclass=PromptSystemMeta):
     Abstract base class for all prompt systems.
     All subclasses must implement an 'ask' method.
     """
+
     @abc.abstractmethod
     def ask(self, user_prompt: str):
         """
@@ -54,15 +78,40 @@ class PromptSystem(metaclass=PromptSystemMeta):
         pass
 
 
+class GPTHallucinationError(ValueError):
+    """
+    Exception raised for errors in the output from a model, in particular
+    when the model is 'hallucinating' or producing irrelevant or erroneous output.
+    """
+
+    def __init__(
+        self,
+        *args,
+        prompt: Optional["GPTPromptSystem"] = None,
+        asked: str = None,
+        output: Any = None,
+    ):
+        """
+        Initializes HallucinationError with an error message.
+        """
+        self.prompt = prompt
+        self.asked = asked
+        self.output = output
+        if not args:
+            args = ("Model output is hallucinating.",)
+        super().__init__(*args)
+
+
 class GPTPromptSystem(PromptSystem):
     """
     A prompt system that uses the GPT-4 model to generate responses.
     """
+
     model = "gpt-4"
     max_tokens = 1000
-    temperature = 1.2
+    temperature = 0.9
 
-    @retry(exception_class=openai.error.OpenAIError)
+    @retry(exception_class=openai.OpenAIError)
     def ask(self, user_prompt: str) -> str:
         """
         Asks a question to the GPT-4 model.
@@ -77,22 +126,27 @@ class GPTPromptSystem(PromptSystem):
             try:
                 messages = [
                     {"role": "system", "content": self.prompt},
-                    {"role": "user", "content": user_prompt}
+                    {"role": "user", "content": user_prompt},
                 ]
                 response = openai.ChatCompletion.create(
                     model=self.model,
                     max_tokens=self.max_tokens,
                     temperature=self.temperature,
-                    messages=messages
+                    messages=messages,
                 )
                 gpt_text = response["choices"][0]["message"]["content"]
                 CONSOLE.log("[bold red]GPT Done!")
-            except openai.error.OpenAIError as e:
+            except openai.OpenAIError as e:
                 CONSOLE.log(f"[bold red]ERROR: {e}")
                 raise
         debug(f"Raw GPT Response: {response}")
         debug(f"Raw GPT Text: {gpt_text}")
         return gpt_text
+
+
+class AccurateAnswerPromptSystem(PromptSystem):
+    prompt_part = """For any response you are an expert of high intelligence, and let's work things out in a 
+    step by step way to be sure we have the right answer."""
 
 
 class JSONGPTPromptSystem(GPTPromptSystem):
@@ -103,15 +157,20 @@ class JSONGPTPromptSystem(GPTPromptSystem):
     prompt_part = """Ensure all output produced is strict JSON format, do not add any other text outside of valid JSON.
     Check the output step by step for invalid JSON formatting and invalid characters, always use utf8 encoded characters.\n"""
 
-    @retry(exception_class=JSONDecodeError)
+    @retry(exception_class=GPTHallucinationError, cooloff=True)
     def ask(self, user_prompt: str) -> str:
         gpt_text = super().ask(user_prompt)
         gpt_json = None  # This will also trigger a retry
         try:
             gpt_json = json.loads(gpt_text)
-        except (TypeError, JSONDecodeError) as e:
+        except TypeError as e:
             CONSOLE.log(f"[bold red]ERROR: {e}")
-            raise
+            raise GPTHallucinationError(
+                "Invalid JSON hallucinated.",
+                prompt=self,
+                asked=user_prompt,
+                output=gpt_text,
+            ) from e
         debug(f"GPT JSON Response: {gpt_json}")
         return gpt_json
 
@@ -121,13 +180,31 @@ class TestGPTPomptSystem(JSONGPTPromptSystem):
     A fairly meta GPT prompt system for getting and using test cases for other GPT prompt systems
     """
 
-    prompt_part = """All user input to follow will be other GPT4 system prompts, can you produce some plausible user 
-    prompts that would follow, and their associated outputs. Do this for 3 examples, 1 across each case, that would 
-    stretch the intent and meaning of the system prompt, as well as test fair conditions for a GPT model and those 
-    that might create hallucinations. Assume the variable num_tracks = 2. Provide the output as a JSON array of objects
-    for each example with three fields "prompt" as a string and "output" as the json array that would be returned given 
-    the user prompt, and finally "case" with the values "happy", "sad", "hallucinating" based on how likely we are to 
-    tax a large language model given the system and user prompt combination."""
+    num_cases = 5
+
+    prompt_part = """All user input to follow will be another GPT4 system prompt, can you produce some plausible user 
+    prompts that would follow, and their associated outputs. Do this for {num_cases} examples across each case, that 
+    would stretch the intent and meaning of the system prompt, as well as test fair conditions for a GPT model and those 
+    that might create hallucinations. Provide the output as an array of JSON objects for each example with three fields 
+    "prompt" as a string and "output" as the JSON that would be returned given the user prompt, and finally "case"
+    with the values "happy", "sad", "hallucinating" based on how  likely we are to tax a large language model given the 
+    system and user prompt combination."""
+
+    def ask(self, user_prompt: str) -> List[PromptTestCase]:
+        gpt_json = super().ask(user_prompt)
+        try:
+            [
+                PromptTestCase(prompt=c["prompt"], output=c["output"], case=c["case"])
+                for c in gpt_json
+            ]
+        except ValueError as e:
+            if "is not a valid TestCaseType" in str(e):
+                raise GPTHallucinationError(
+                    f"TestCaseType was hallucinated should have been one of: {TestCaseType._member_names_}",
+                    prompt=self,
+                    asked=user_prompt,
+                    output=gpt_json,
+                ) from e
 
 
 class SelfTestJSONGPTPromptSystem(JSONGPTPromptSystem):
@@ -137,7 +214,7 @@ class SelfTestJSONGPTPromptSystem(JSONGPTPromptSystem):
     """
 
     def test_cases(self):
-        return TestGPTPomptSystem().ask(self.prompt)
+        return TestGPTPomptSystem(num_cases=12).ask(self.prompt)
 
 
 class IntGPTPromptSystem(GPTPromptSystem):
@@ -157,6 +234,6 @@ class IntGPTPromptSystem(GPTPromptSystem):
         debug(f"GPT Integer Response: {gpt_text}")
         try:
             integer = int(gpt_text)
-        except ValueError as e:
+        except ValueError:
             integer = None
         return integer
